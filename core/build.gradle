@@ -23,4 +23,13 @@ tasks.register('verifyIdentity', JavaExec) {
     maxHeapSize = '512m'
     mustRunAfter verifyTerraces
 }
-tasks.named('check') { dependsOn verifyCore, verifyTerraces, verifyIdentity }
+tasks.register('verifyReference', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.castleforge.core.ReferenceVerification'
+    maxHeapSize = '512m'
+    mustRunAfter verifyIdentity
+}
+
+tasks.named('check') { dependsOn verifyCore, verifyTerraces, verifyIdentity, verifyReference }
+

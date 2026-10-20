@@ -4,7 +4,8 @@ plugins {
 }
 allprojects {
     group = 'dev.castleforge'
-    version = '0.2.1-alpha.1'
+    version = '0.3.0-alpha.1'
     repositories { mavenCentral() }
 }
 tasks.named('build') { dependsOn ':core:build', ':fabric:build' }
+
