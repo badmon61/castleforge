@@ -96,9 +96,31 @@ corners and light are not simulated.
 
 The local offline cache lacks pinned Gradle 9.4.0 and Fabric/Mojang dependencies.
 Microsoft JDK 25.0.1 is available, but a full local offline Fabric build was not
-claimed. GitHub Actions runs the pinned full build, four suites, archive metadata
-and class checks, SHA-256 recording, and actual-block export. The resulting run,
-artifact and hash are recorded after the remote build completes.
+claimed. The pinned complete build succeeded in
+[GitHub Actions run 39462643241](https://github.com/badmon61/castleforge/actions/runs/39462643241)
+for implementation commit `32c267506f5b4dc4f4f6ca6f19a86d1abd166a6e`:
+
+- Java 25 / Gradle 9.4.0; `gradle --no-daemon build --stacktrace`:
+  **BUILD SUCCESSFUL in 35s**. All four suites passed; reference took 10.54 s on CI.
+- Archive metadata, included old/new runtime classes and absence of bundled
+  Minecraft classes/test suites passed `verify-artifact.py`.
+- Actual-block export on Linux/Java 25 matched the local Windows/Java 21 TSV
+  digest exactly. Its cold planning invocation took 614 ms on that runner.
+- [JAR artifact 12283402667](https://github.com/badmon61/castleforge/actions/runs/39462643241/artifacts/12283402667)
+  contains the runtime and sources JAR. Install only the runtime JAR below.
+- `verification-reports` artifact `12282773379` contains the build log,
+  actual block TSV, model and JAR digest. The ZIP artifact digest is distinct
+  from the runtime JAR's SHA-256.
+
+Runtime artifact: `castleforge-fabric-0.3.0-alpha.1.jar`:
+
+```text
+a253ce625e9b6baeaa3a57218b4c4e2c05c7313abf1ffc24dcfa79f5f5eac7d1
+```
+
+[Draft PR #7](https://github.com/badmon61/castleforge/pull/7) targets
+`feat/reference-castle-0.3`, not `main`. This evidence update changes documentation
+only after the tested implementation commit.
 
 **Not performed:** Minecraft client launch, actual player traversal/collision,
 GameTests, dedicated-server start, runtime neighbor updates, block-entity conflict
