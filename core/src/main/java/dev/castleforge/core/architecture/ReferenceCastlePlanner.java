@@ -9,7 +9,7 @@ import static dev.castleforge.core.architecture.ReferenceBlock.*;
 
 /** Bounded, immutable model -> owned geometry -> furnishings -> independent quality validation. */
 public final class ReferenceCastlePlanner {
-    public static final int VERSION=1,RADIUS=54,MAX_BLOCKS=200_000,MAX_RELIEF=3;
+    public static final int VERSION=2,RADIUS=54,MAX_BLOCKS=200_000,MAX_RELIEF=3;
     public record Plan(List<ReferenceBlock> blocks,ArchitectureModel architecture,QualityReport report,
             int floorY,int relief,int quarterTurns,CultureMap.Region region,int originX,int originZ) {
         public Plan { blocks=List.copyOf(blocks); }
@@ -39,7 +39,8 @@ public final class ReferenceCastlePlanner {
             if(!court&&model.modules().stream().noneMatch(m->m.footprint(px,pz)))continue;
             int start=heights[dx+RADIUS][dz+RADIUS]-floor;
             for(int y=start;y<0;y++)b.put("site",dx,y,dz,Kind.FOUNDATION);
-            b.put("site",dx,0,dz,Kind.STONE);
+            boolean processional=Math.abs(dx)<=3||Math.abs(dz-15)<=2;
+            b.put("site",dx,0,dz,processional?Kind.TRIM:Math.floorMod(dx,7)==0||Math.floorMod(dz,7)==0?Kind.STONE:Kind.PAVING);
         }
         ModuleLibrary.build(model,b);
         InteriorDesigner.furnish(model,b,detailSeed);

@@ -248,8 +248,11 @@ public final class CastleForge implements ModInitializer {
                     BlockState state = p.level.getBlockState(pos);
                     if (!state.getFluidState().isEmpty())
                         throw new IllegalArgumentException("Reference site contains water/fluid at " + pos.toShortString());
-                    if (!naturalGround(state) || p.level.getBlockEntity(pos) != null)
-                        throw new IllegalArgumentException("Reference site has unknown or protected ground at " + pos.toShortString());
+                    if (p.level.getBlockEntity(pos) != null)
+                        throw new IllegalArgumentException("Reference site contains a block entity at " + pos.toShortString() + ": " + state);
+                    if (!naturalGround(state))
+                        throw new IllegalArgumentException("Reference ground block is not in the supported terrain list at " + pos.toShortString()
+                            + ": " + state + ". Choose an open flat site");
                     p.checks.add(new Check(pos,state));
                     p.heights[p.snapshotIndex++] = y;
                     work++;

@@ -18,6 +18,8 @@ COLORS = {
     'STONE_STAIRS': '#b3aa94', 'WOOD_STAIRS': '#a08055',
     'ROOF_STAIRS': '#424f58', 'SLAB': '#a08055',
     'ROOF_SLAB': '#424f58', 'LANTERN': '#ffd68c',
+    'PLASTER': '#e2dac2', 'PAVING': '#8d8a81', 'GARDEN': '#607d43',
+    'TABLE_TOP': '#a08055', 'STONE_SLAB': '#b3aa94',
 }
 
 
@@ -28,8 +30,10 @@ def boxes(kind, facing):
                  'EAST': (.5, .5, 0, 1, 1, 1),
                  'WEST': (0, .5, 0, .5, 1, 1)}[facing]
         return [(0, 0, 0, 1, .5, 1), upper]
-    if kind in ('SLAB', 'ROOF_SLAB'):
+    if kind in ('SLAB', 'ROOF_SLAB', 'STONE_SLAB'):
         return [(0, 0, 0, 1, .5, 1)]
+    if kind == 'TABLE_TOP':
+        return [(0, .5, 0, 1, 1, 1)]
     if kind == 'LANTERN':
         return [(.3, .15, .3, .7, .65, .7), (.45, .65, .45, .55, 1, .55)]
     return [(0, 0, 0, 1, 1, 1)]
@@ -84,8 +88,8 @@ def render(args):
             for vertices, light, normal in candidates:
                 neighbor = occupied.get((x+normal[0], y+normal[1], z+normal[2]))
                 # Cull only complete outside cube faces. Partial stair/slab faces stay.
-                if kind not in ('SLAB','ROOF_SLAB','LANTERN') and not kind.endswith('_STAIRS'):
-                    if neighbor and neighbor not in ('SLAB','ROOF_SLAB','LANTERN') and not neighbor.endswith('_STAIRS'):
+                if kind not in ('SLAB','ROOF_SLAB','LANTERN','TABLE_TOP','STONE_SLAB') and not kind.endswith('_STAIRS'):
+                    if neighbor and neighbor not in ('SLAB','ROOF_SLAB','LANTERN','TABLE_TOP','STONE_SLAB') and not neighbor.endswith('_STAIRS'):
                         continue
                 depth = sum((sx*v[0]+sz*v[2])*math.cos(angle)+v[1]*math.sin(angle)*1.4142 for v in vertices)/4
                 if args.top:

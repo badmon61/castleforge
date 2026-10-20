@@ -84,10 +84,39 @@ public final class ReferenceVerification {
         rejects(() -> plan(42,0,0,(x,z) -> Integer.MAX_VALUE,region(0)),"overflow terrain rejected");
         rejects(() -> plan(42,0,0,(x,z) -> x < 0 ? 64 : 100,region(0)),"cliff rejected rather than excavated");
         verifyMutations(reference);
+        verifyArchitecturalDetails(reference);
         verifyCancellation();
         System.out.println("Reference SHA-256: " + digest(reference.blocks()));
         System.out.printf(Locale.ROOT,"PASS reference: %d accepted sites, %d rejected invalid scenarios, 1 cancellation scenario, %d invariant assertions; %.2f s.%n",
             accepted,negativeScenarios,assertions,(System.nanoTime()-started)/1e9);
+    }
+    private static void verifyArchitecturalDetails(Plan plan) {
+        var model=plan.architecture();var local=plan.localBlocks();
+        Map<Pos,ReferenceBlock> blocks=new HashMap<>();for(var b:local)blocks.put(b.pos(),b);
+        check(model.partitions().size()==9,"three actual dividing walls per residential floor");
+        check(model.facadeBays().size()==22,"hall and east residential elevations use declared facade bays");
+        check(model.dormers().size()==2,"two explicitly joined roof lights break the long roof plane");
+        check(model.courtFeatures().size()==3,"court has three declared uses, not random clutter");
+        for(Room room:model.rooms())if(room.id().startsWith("chamber-")||room.id().startsWith("study-")) {
+            check(room.interior().width()<=10&&room.interior().depth()<=8,"chamber has human-scale dimensions");
+            check(model.circulation().contains(room.target()),"each actual chamber has its own route");
+        }
+        Pos wall=new Pos(25,10,-5),portal=new Pos(25,10,-8);
+        rejects(()->QualityChecks.verify(model,replace(local,wall,Kind.AIR,Facing.NONE)),"removing a real dividing wall fails final validation");
+        rejects(()->QualityChecks.verify(model,replace(local,portal,Kind.PLASTER,Facing.NONE)),"blocking a chamber doorway fails final validation");
+        var bay=model.facadeBays().getFirst();Box a=bay.window().opening();
+        Pos reveal=new Pos(a.minX()-1,a.minY(),a.minZ()-1);
+        rejects(()->QualityChecks.verify(model,replace(local,reveal,Kind.AIR,Facing.NONE)),"missing projected window jamb fails final validation");
+        Pos insideWindow=new Pos(a.minX(),a.minY(),a.minZ()+1);
+        rejects(()->QualityChecks.verify(model,replace(local,insideWindow,Kind.BOOKSHELF,Facing.NONE)),"furniture behind glazing fails final validation");
+        check(blocks.get(new Pos(-7,1,-24)).kind()==Kind.TABLE_TOP,"hall table uses a one-block-high top instead of a 2.5-block platform");
+        check(!new ReferenceBlock(new Pos(0,0,0),Kind.TABLE_TOP).fullCube(),"top slab is not a full navigation support");
+        for(Dormer d:model.dormers()) {
+            check(blocks.get(new Pos(d.frontX(),d.baseY()+1,d.centerZ())).kind()==Kind.GLASS,"dormer front contains glazing");
+            check(blocks.get(new Pos(d.frontX()-1,d.baseY()+1,d.centerZ())).kind()==Kind.AIR,"dormer glazing has an interior air pocket");
+        }
+        Dormer first=model.dormers().getFirst();
+        rejects(()->QualityChecks.verify(model,replace(local,new Pos(first.frontX(),first.baseY()+6,first.centerZ()),Kind.AIR,Facing.NONE)),"missing dormer cap fails final validation");
     }
     private static void verifyCancellation() {
         boolean cancelled=false, interruptPreserved;
@@ -234,7 +263,7 @@ public final class ReferenceVerification {
     private static ArchitectureModel copyModel(ArchitectureModel model,List<ArchitectureModel.Module> modules,List<Room> rooms,
             List<Connection> connections,List<StairFlight> stairs,List<Window> windows) {
         return new ArchitectureModel(model.variant(),modules,rooms,connections,stairs,windows,
-            model.clearance(),model.circulation(),model.entrance());
+            model.clearance(),model.circulation(),model.entrance(),model.partitions(),model.facadeBays(),model.courtFeatures(),model.dormers());
     }
     private static List<ReferenceBlock> replace(List<ReferenceBlock> input,Pos pos,Kind kind,Facing facing) {
         var output=new ArrayList<ReferenceBlock>(input.size()+1);

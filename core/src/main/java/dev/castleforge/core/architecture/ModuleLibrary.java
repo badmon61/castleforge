@@ -12,6 +12,7 @@ final class ModuleLibrary {
         for(Module m:model.modules())roof(model,m,b);
         for(StairFlight f:model.stairs())flight(model,f,b);
         for(Window w:model.windows())window(model,w,b);
+        ArchitecturalDetails.build(model,b);
         for(Pos p:model.clearance())b.airIfEmpty("clearance",p.x(),p.y(),p.z());
     }
     private static void shell(ArchitectureModel model,Module m,OwnedBlockBuffer b){
@@ -24,11 +25,12 @@ final class ModuleLibrary {
                 Kind k;
                 if(model.clearance().contains(p))k=Kind.AIR;
                 else if(m.type()==ModuleType.CURTAIN)k=y==0||y==height?Kind.TRIM:Kind.STONE;
-                else if(wall)k=y<=1||y==height||y%8==7?Kind.TRIM:Kind.STONE;
+                else if(wall)k=y<=1||y==height||y%8==7?Kind.TRIM:
+                    m.type()==ModuleType.RESIDENCE&&y>=8?Kind.PLASTER:Kind.STONE;
                 else if(m.floors().contains(y))k=Kind.PLANKS;
                 else k=Kind.AIR;
                 // Corner piers and restrained half-timber upper service/residential facades.
-                if(wall&&k==Kind.STONE&&(m.type()==ModuleType.RESIDENCE||m.id().equals("service"))&&y>=8
+                if(wall&&(k==Kind.STONE||k==Kind.PLASTER)&&(m.type()==ModuleType.RESIDENCE||m.id().equals("service"))&&y>=8
                         &&(x==a.minX()||x==a.maxX())&&Math.floorMod(z-a.minZ(),6)==0)k=Kind.TIMBER;
                 b.put(id,x,y,z,k);
             }

@@ -29,6 +29,11 @@ final class ReferencePalette {
             case GLASS -> Blocks.GLASS.defaultBlockState();
             case BOOKSHELF -> Blocks.BOOKSHELF.defaultBlockState();
             case WOOL -> Blocks.RED_WOOL.defaultBlockState();
+            case PLASTER -> Blocks.CALCITE.defaultBlockState();
+            case PAVING -> Blocks.ANDESITE.defaultBlockState();
+            case GARDEN -> Blocks.MOSS_BLOCK.defaultBlockState();
+            case TABLE_TOP -> Blocks.SPRUCE_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.TOP);
+            case STONE_SLAB -> Blocks.STONE_BRICK_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM);
             case STONE_STAIRS -> Blocks.STONE_BRICK_STAIRS.defaultBlockState()
                 .setValue(StairBlock.FACING, facing(block));
             case WOOD_STAIRS -> Blocks.SPRUCE_STAIRS.defaultBlockState()

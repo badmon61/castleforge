@@ -29,6 +29,32 @@ public final class QualityChecks {
             placementIndex.put(b.pos(), index++);
         }
         for (Pos p : model.clearance()) air(blocks, p, "reserved clearance");
+        for(Partition p:model.partitions()) {
+            Box a=p.wall();
+            for(int x=a.minX();x<=a.maxX();x++)for(int z=a.minZ();z<=a.maxZ();z++)for(int y=a.minY();y<=a.maxY();y++) {
+                Pos pos=new Pos(x,y,z);
+                if(p.portals().stream().anyMatch(portal->portal.contains(pos)))air(blocks,pos,"partition portal "+p.id());
+                else {
+                    ReferenceBlock block=blocks.get(pos);
+                    require(block!=null&&(block.kind()==Kind.TIMBER||block.kind()==Kind.PLASTER),"missing partition "+p.id(),pos);
+                }
+            }
+        }
+        for(FacadeBay bay:model.facadeBays()) {
+            Window w=bay.window();Box a=w.opening();int cx=(a.minX()+a.maxX())/2,cz=(a.minZ()+a.maxZ())/2;
+            int tx=w.outward().dz==0?0:1,tz=w.outward().dx==0?0:1;
+            for(int side:new int[]{-2,2}) {
+                Pos p=new Pos(cx+tx*side+w.outward().dx,a.minY(),cz+tz*side+w.outward().dz);
+                require(blocks.containsKey(p)&&blocks.get(p).kind()==Kind.TRIM,"missing facade reveal "+bay.id(),p);
+            }
+        }
+        for(Dormer d:model.dormers()) {
+            Pos glazing=new Pos(d.frontX(),d.baseY()+1,d.centerZ());
+            require(blocks.containsKey(glazing)&&blocks.get(glazing).kind()==Kind.GLASS,"missing dormer glazing",d.id());
+            air(blocks,offset(glazing,-1,0,0),"dormer interior "+d.id());
+            Pos ridge=new Pos(d.frontX(),d.baseY()+6,d.centerZ());
+            require(blocks.containsKey(ridge)&&blocks.get(ridge).kind()==Kind.ROOF_SLAB,"missing dormer ridge",d.id());
+        }
         for (Connection c : model.connections()) {
             Box a = c.aperture();
             for (int x=a.minX(); x<=a.maxX(); x++) for (int z=a.minZ(); z<=a.maxZ(); z++) {
@@ -43,6 +69,7 @@ public final class QualityChecks {
                 Pos p=new Pos(x,y,z); ReferenceBlock b=blocks.get(p);
                 require(b != null && b.kind()==Kind.GLASS,"window glazing",p);
                 air(blocks,offset(p,w.outward().dx,0,w.outward().dz),"window exterior " + w.moduleId());
+                air(blocks,offset(p,-w.outward().dx,0,-w.outward().dz),"window interior " + w.moduleId());
             }
         }
         for (ReferenceBlock b : localBlocks) if (b.kind()==Kind.LANTERN) {
@@ -128,6 +155,42 @@ public final class QualityChecks {
         while(!queue.isEmpty()) for(String next:graph.getOrDefault(queue.removeFirst(),Set.of())) if(connected.add(next)) queue.addLast(next);
         for(Room r:model.rooms()) require(connected.contains(r.moduleId()),"disconnected module",r.moduleId());
         Set<String> stairIds=new HashSet<>();
+        Set<String> detailIds=new HashSet<>();
+        for(Partition p:model.partitions()) {
+            require(p!=null&&p.id()!=null&&detailIds.add(p.id()),"partition id",p);
+            var owner=modules.get(p.moduleId());Box a=p.wall();
+            require(owner!=null&&a!=null&&(a.width()==1||a.depth()==1),"partition owner/plane",p.id());
+            require(a.minY()>owner.bounds().minY()&&a.maxY()<owner.bounds().maxY(),"partition vertical bounds",p.id());
+            for(Room room:model.rooms())if(room.moduleId().equals(p.moduleId()))
+                require(!a.overlaps(room.interior()),"partition intersects declared room",p.id()+" / "+room.id());
+            for(int x:new int[]{a.minX(),a.maxX()})for(int z:new int[]{a.minZ(),a.maxZ()})require(owner.inside(x,z),"partition outside owner",p.id());
+            for(Box portal:p.portals()) {
+                require(a.contains(new Pos(portal.minX(),portal.minY(),portal.minZ()))&&a.contains(new Pos(portal.maxX(),portal.maxY(),portal.maxZ())),"partition portal outside wall",p.id());
+                require(portal.minY()==a.minY()&&portal.maxY()-portal.minY()>=2,"partition portal height",p.id());
+                for(int x=portal.minX();x<=portal.maxX();x++)for(int z=portal.minZ();z<=portal.maxZ();z++)
+                    require(model.circulation().contains(new Pos(x,portal.minY(),z)),"partition portal missing route",p.id());
+            }
+        }
+        for(FacadeBay bay:model.facadeBays()) {
+            require(bay!=null&&bay.id()!=null&&detailIds.add(bay.id())&&bay.style()!=null,"facade bay identity",bay);
+            require(model.windows().contains(bay.window()),"facade bay lacks declared window",bay.id());
+            Box a=bay.window().opening();
+            require(Math.max(a.width(),a.depth())==3&&Math.min(a.width(),a.depth())==1,"facade bay opening width",bay.id());
+            require(bay.envelope().contains(new Pos(a.minX(),a.minY(),a.minZ()))&&bay.envelope().contains(new Pos(a.maxX(),a.maxY(),a.maxZ())),"facade envelope misses glazing",bay.id());
+        }
+        for(CourtFeature f:model.courtFeatures()) {
+            require(f!=null&&f.id()!=null&&detailIds.add(f.id())&&f.use()!=null,"court feature identity",f);
+            for(var m:model.modules())require(!f.bounds().overlaps(m.bounds()),"court feature collides with module",f.id()+" / "+m.id());
+        }
+        for(Dormer d:model.dormers()) {
+            require(d!=null&&d.id()!=null&&detailIds.add(d.id()),"dormer identity",d);
+            var owner=modules.get(d.moduleId());
+            require(owner!=null&&owner.roof()==RoofType.GABLE_Z,"dormer requires longitudinal roof",d.id());
+            Box a=owner.bounds();
+            require(d.frontX()==a.maxX()&&d.baseY()==a.maxY()+3&&d.centerZ()-3>a.minZ()&&d.centerZ()+3<a.maxZ(),"dormer roof junction",d.id());
+        }
+        for(int i=0;i<model.courtFeatures().size();i++)for(int j=i+1;j<model.courtFeatures().size();j++)
+            require(!model.courtFeatures().get(i).bounds().overlaps(model.courtFeatures().get(j).bounds()),"court feature overlap",i+" / "+j);
         for (StairFlight s : model.stairs()) {
             require(s!=null && s.id()!=null && stairIds.add(s.id()),"duplicate/invalid stair id",s);
             require(modules.containsKey(s.moduleId()) && s.facing()!=null && s.facing()!=Facing.NONE,"stair owner/facing",s.id());

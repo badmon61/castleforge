@@ -29,7 +29,7 @@ jobs:
       - name: Verify distribution and export actual reference blocks
         shell: bash
         run: |
-          python3 scripts/verify-artifact.py fabric/build/libs/castleforge-fabric-0.3.0-alpha.1.jar
+          python3 scripts/verify-artifact.py fabric/build/libs/castleforge-fabric-0.3.0-alpha.2.jar
           java -Xmx512m -cp core/build/classes/java/main:core/build/classes/java/test dev.castleforge.core.ReferenceExport build/reference
       - uses: actions/upload-artifact@v4
         with:

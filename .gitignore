@@ -5,9 +5,12 @@
 .vscode/
 *.iml
 *.class
+__pycache__/
+*.pyc
 *.log
 *.jar
 *.zip
 !gradle/wrapper/gradle-wrapper.jar
 hs_err_pid*
 replay_pid*
+

@@ -30,6 +30,10 @@ public final class ReferenceExport {
         model.append("\nRooms\n"); plan.architecture().rooms().forEach(r->model.append(r).append('\n'));
         model.append("\nConnections\n"); plan.architecture().connections().forEach(c->model.append(c).append('\n'));
         model.append("\nStair flights\n"); plan.architecture().stairs().forEach(s->model.append(s).append('\n'));
+        model.append("\nPartitions\n");plan.architecture().partitions().forEach(p->model.append(p).append('\n'));
+        model.append("\nFacade bays\n");plan.architecture().facadeBays().forEach(p->model.append(p).append('\n'));
+        model.append("\nCourt uses\n");plan.architecture().courtFeatures().forEach(p->model.append(p).append('\n'));
+        model.append("\nRoof lights\n");plan.architecture().dormers().forEach(p->model.append(p).append('\n'));
         Files.writeString(directory.resolve("model.txt"),model,StandardCharsets.UTF_8);
         System.out.println(model.substring(0,model.indexOf("\n\nModules")));
         System.out.println("Exported "+directory.toAbsolutePath());

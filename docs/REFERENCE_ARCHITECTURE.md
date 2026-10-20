@@ -26,7 +26,7 @@ Canonical model coordinates are independent of the seed-selected world rotation.
 Use a **separate disposable Creative world**, initially superflat, with cheats.
 Keep the pinned Minecraft Java 26.1.2, Java 25, Fabric Loader 0.19.5+ and
 Fabric API 0.155.3+26.1.2 environment. Install only the runtime
-`castleforge-fabric-0.3.0-alpha.1.jar` from a successful branch build, not a
+`castleforge-fabric-0.3.0-alpha.2.jar` from a successful branch build, not a
 sources JAR and not two CastleForge versions simultaneously.
 
 ```mcfunction
@@ -68,9 +68,10 @@ Legacy controls remain `/castleforge preview [x z]` and
 
 - One maintained, authored layout; not eight cultural architectural grammars,
   historical reconstruction, arbitrary castle diversity or ruin simulation.
-- The residential wing still has generous open storeys; finer interior zoning,
-  richer courtyard composition and more individual facade/roof details need a
-  later visual iteration. A complete accessible wall-walk system is not included:
+- V2 divides the residential south wing into six real chambers, leaving the
+  northern stair lobbies open. It adds facade bays, roof lights and court uses;
+  this is still below the owner's visual benchmark. See REFERENCE_V2_STUDY.md.
+  A complete accessible wall-walk system is not included:
   corner-tower guardrooms are targets, curtain tops and roofs are not main rooms.
 - Shallow, dry, open terrain only. Difficult slopes and unknown/protected ground
   are rejected; maximum survey relief is three blocks, and a rough approach can

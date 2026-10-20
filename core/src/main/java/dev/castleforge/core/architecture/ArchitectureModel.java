@@ -7,12 +7,15 @@ import java.util.*;
 /** Canonical local coordinates: model precedes all voxel placement. Floor Y denotes supporting block. */
 public record ArchitectureModel(String variant, List<Module> modules, List<Room> rooms,
         List<Connection> connections,List<StairFlight> stairs,List<Window> windows,
-        Set<Pos> clearance,Set<Pos> circulation,Pos entrance) {
+        Set<Pos> clearance,Set<Pos> circulation,Pos entrance,
+        List<Partition> partitions,List<FacadeBay> facadeBays,List<CourtFeature> courtFeatures,List<Dormer> dormers) {
     public ArchitectureModel {
         modules=List.copyOf(modules);rooms=List.copyOf(rooms);connections=List.copyOf(connections);
         stairs=List.copyOf(stairs);windows=List.copyOf(windows);
         clearance=Collections.unmodifiableSet(new LinkedHashSet<>(clearance));
         circulation=Collections.unmodifiableSet(new LinkedHashSet<>(circulation));
+        partitions=List.copyOf(partitions);facadeBays=List.copyOf(facadeBays);courtFeatures=List.copyOf(courtFeatures);
+        dormers=List.copyOf(dormers);
     }
     public enum ModuleType { KEEP, GREAT_HALL, RESIDENCE, SERVICE_WING, GATEHOUSE, CORNER_TOWER, CURTAIN }
     public enum RoomType { GREAT_HALL, KITCHEN, BEDCHAMBER, LIBRARY, STORE, GUARDROOM, STAIR_HALL, SOLAR }
@@ -40,5 +43,16 @@ public record ArchitectureModel(String variant, List<Module> modules, List<Room>
         public StairFlight { treads=treads.stream().map(List::copyOf).toList(); }
     }
     public record Window(String moduleId,Box opening,Facing outward) {}
+    /** A real interior wall; its open portals are reserved before furnishing, not carved afterwards. */
+    public record Partition(String id,String moduleId,Box wall,List<Box> portals) {
+        public Partition { portals=List.copyOf(portals); }
+    }
+    public enum BayStyle { HALL_LANCET, CHAMBER_CASEMENT }
+    /** Planned facade depth and a declared window, independently inspectable before emission. */
+    public record FacadeBay(String id,Window window,BayStyle style,Box envelope) {}
+    public enum CourtUse { COVERED_WELL, HERB_GARDEN, SEATING_ARBOR }
+    public record CourtFeature(String id,CourtUse use,Box bounds) {}
+    /** Small east-facing roof light, with an explicit owned roof junction; not a declared habitable room. */
+    public record Dormer(String id,String moduleId,int frontX,int centerZ,int baseY) {}
     public Module module(String id) { return modules.stream().filter(m->m.id.equals(id)).findFirst().orElseThrow(); }
 }

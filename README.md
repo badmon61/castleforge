@@ -3,9 +3,17 @@
 Terrain-aware procedural castles and independent culture regions for Minecraft.
 Original idea: Emre's brother. Concept and project direction: Emre (`badmon61`).
 
-## Status: 0.3.0-alpha.1 - authored reference architecture
+## Status: 0.3.0-alpha.2 - architectural detail study, not visually accepted
 
 **Experimental, opt-in, disposable test worlds only. No automatic generation.**
+
+**The owner rejected Falkenwacht v1's visual quality after an in-game trial.**
+V2 adds real residential partitions, wider framed facade bays, roof lights,
+gable joinery, a furnished court and corrected hall furniture proportions.
+It remains a fixed-layout study, below the intended hand-built benchmark.
+See [the rejection and design decision](docs/ADR_0002_VISUAL_REJECTION_AND_DETAIL_STUDY.md),
+[v2 comparison and evidence](docs/REFERENCE_V2_STUDY.md) and the preserved
+[long-term product direction](docs/PRODUCT_DIRECTION.md).
 
 0.3 adds one independently authored reference castle, Falkenwacht. A typed
 architecture model defines building masses, room functions, floor levels,
@@ -33,7 +41,7 @@ See [reference architecture, limits and manual test](docs/REFERENCE_ARCHITECTURE
 rendered from generated block data; they are **not Minecraft screenshots or
 proof of visual acceptance, block physics, actual collision shapes or FPS**.
 
-## Previously: 0.2.1-alpha.1 - identity and architectural diagnostics
+## Previously: 0.2.1-alpha.1 — identity and architectural diagnostics
 
 **New in 0.2.1:** Seed-stable, culture-dependent castle names and regional dynasties, symbolic heraldry, age, chronological construction milestones, and a condition-derived *planned* occupancy category. These are narrative metadata only: **no NPCs, loot, actual banners or timeline simulation are spawned**. The two existing castle shapes and culture map remain unchanged. Different regions may coincidentally share generated names; uniqueness is not promised.
 
@@ -41,7 +49,7 @@ The terraced preview now includes a quick dimensional/material/access summary. U
 
 Small visible facade improvement: culture-sensitive accent blocks for trim and timber. This changes palette appearance, **not** the geometry generator, region borders or world settings. Refer to [identity and diagnostic contract](docs/IDENTITY_AND_DIAGNOSTICS.md).
 
-## Previously: 0.2.0-alpha.1 - opt-in terraced architecture
+## Previously: 0.2.0-alpha.1 — opt-in terraced architecture
 
 **Disposable test worlds only. No automatic world generation and no completed in-game acceptance test.**
 
@@ -59,7 +67,7 @@ The original small castle remains available. A new, separate planner adds an asy
 
 ### Retained
 
-Deterministic culture geography, eight stable culture IDs, and **7 � the configured linear biome reference**. The default reference is 1,024 blocks, resulting in 7,168-block nominal region-site spacing. It is not a measured vanilla biome size or a fixed region diameter. Per-save generation settings and the classic planner are unchanged.
+Deterministic culture geography, eight stable culture IDs, and **7 × the configured linear biome reference**. The default reference is 1,024 blocks, resulting in 7,168-block nominal region-site spacing. It is not a measured vanilla biome size or a fixed region diameter. Per-save generation settings and the classic planner are unchanged.
 
 ### Still outside this milestone
 
@@ -70,8 +78,8 @@ Automatic exploration-time generation; automatically measured biome scaling; arb
 Target remains **Minecraft Java 26.1.2**, **Java 25**, **Fabric Loader 0.19.5+**, **Fabric API 0.155.3+26.1.2**.
 
 1. Use a separate Prism/Fabric instance and a new disposable Creative world with commands enabled.
-2. Install `castleforge-fabric-0.3.0-alpha.1.jar` from a successful branch Actions build plus the matching Fabric API. Replace the old CastleForge JAR; do not install two versions or a `-sources.jar`.
-3. Start on superflat to verify the reference workflow, then test a second disposable world with shallow, open terrain. Reference uses a 109 � 109 survey; legacy terraced uses 105 � 105. The whole site must already be loaded.
+2. Install `castleforge-fabric-0.3.0-alpha.2.jar` from a successful branch Actions build plus the matching Fabric API. Replace the old CastleForge JAR; do not install two versions or a `-sources.jar`.
+3. Start on superflat to verify the reference workflow, then test a second disposable world with shallow, open terrain. Reference uses a 109 × 109 survey; legacy terraced uses 105 × 105. The whole site must already be loaded.
 4. Execute separately:
 
 ```mcfunction
@@ -135,7 +143,7 @@ furnished blocks, deterministic rotations, bounded sites, deliberate invalid
 fixtures and the terrain approach. Exact cases and results are recorded in
 [reference validation](docs/REFERENCE_VALIDATION.md).
 
-The classic suite checks 50 seeds. A third suite checks narrative identities across 100 seeds and eight cultures, coherent chronology, region-level dynasties, diagnostic counts and reporting. The new suite checks **32 seeds � 5 synthetic terrains = 160 combinations**, all eight culture profiles, all four rotations, roofs and condition states, determinism, navigation, bounded supports, rejection cases, negative/world-edge coordinates and concurrent planning. A golden geometry digest detects unintended generator drift. Repeated per-voxel assertions are not millions of different test scenarios.
+The classic suite checks 50 seeds. A third suite checks narrative identities across 100 seeds and eight cultures, coherent chronology, region-level dynasties, diagnostic counts and reporting. The new suite checks **32 seeds × 5 synthetic terrains = 160 combinations**, all eight culture profiles, all four rotations, roofs and condition states, determinism, navigation, bounded supports, rejection cases, negative/world-edge coordinates and concurrent planning. A golden geometry digest detects unintended generator drift. Repeated per-voxel assertions are not millions of different test scenarios.
 
 Passing these checks is **not a Minecraft launch, entity-pathfinding, block-physics or visual test**. See [terraced architecture and acceptance checklist](docs/TERRACED_ARCHITECTURE.md), [original architecture](docs/ARCHITECTURE.md), [classic test checklist](docs/TESTING.md), [initial alpha validation](docs/VALIDATION.md), and [long-term roadmap](docs/ROADMAP.md).
 
