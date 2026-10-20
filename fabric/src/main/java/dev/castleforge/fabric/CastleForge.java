@@ -3,6 +3,8 @@ package dev.castleforge.fabric;
 import dev.castleforge.core.CastlePlanner;
 import dev.castleforge.core.CultureMap;
 import dev.castleforge.core.TerracedCastlePlanner;
+import dev.castleforge.core.CastleIdentity;
+import dev.castleforge.core.PlanDiagnostics;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -39,7 +41,7 @@ public final class CastleForge implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> dispatcher.register(
             Commands.literal("castleforge")
                 .requires(s -> s.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
-                .executes(c -> say(c.getSource(), "CastleForge alpha: /castleforge region | preview [terraced] [x z] | build confirm | status | cancel | undo. TEST WORLDS ONLY."))
+                .executes(c -> say(c.getSource(), "CastleForge alpha: /castleforge region | preview [terraced] [x z] | build confirm | inspect | status | cancel | undo. TEST WORLDS ONLY."))
                 .then(Commands.literal("region").executes(c -> safely(c.getSource(), () -> region(c.getSource()))))
                 .then(Commands.literal("preview")
                     .executes(c -> safely(c.getSource(), () -> preview(c.getSource(), null, null, false)))
@@ -55,6 +57,7 @@ public final class CastleForge implements ModInitializer {
                                     IntegerArgumentType.getInteger(c,"x"), IntegerArgumentType.getInteger(c,"z"), true)))))))
                 .then(Commands.literal("build").then(Commands.literal("confirm")
                     .executes(c -> safely(c.getSource(), () -> build(c.getSource())))))
+                .then(Commands.literal("inspect").executes(c -> safely(c.getSource(), () -> inspect(c.getSource()))))
                 .then(Commands.literal("status").executes(c -> safely(c.getSource(), () -> status(c.getSource()))))
                 .then(Commands.literal("cancel").executes(c -> safely(c.getSource(), () -> cancel(c.getSource()))))
                 .then(Commands.literal("undo").executes(c -> safely(c.getSource(), () -> undo(c.getSource()))))
@@ -125,12 +128,18 @@ public final class CastleForge implements ModInitializer {
         };
         List<Desired> desired = new ArrayList<>();
         String summary;
+        String details;
         if (terraced) {
             var plan = TerracedCastlePlanner.plan(level.getSeed(),ox,oz,ground,region);
             for (var block : plan.blocks()) {
                 var v = block.pos(); desired.add(new Desired(new BlockPos(v.x(),v.y(),v.z()),palette.resolve(block)));
             }
-            summary = "TERRACED v1 / " + plan.condition() + "; " + plan.terraces().size() + " courts, "
+            var report = PlanDiagnostics.analyze(plan);
+            var identity = CastleIdentity.generate(level.getSeed(),ox,oz,region,plan.condition());
+            details = identity.oneLine() + "; heraldry: " + identity.heraldry()
+                + "; " + report.compact() + "; oldest milestone: "
+                + identity.events().getFirst().description();
+            summary = identity.name() + " / TERRACED v1 / " + plan.condition() + "; " + plan.terraces().size() + " courts, "
                 + plan.rooms().size() + " modules, " + plan.targets().size() + " verified access targets; terrace relief "
                 + plan.relief() + "; rotation " + (plan.quarterTurns()*90) + " degrees";
         } else {
@@ -138,7 +147,10 @@ public final class CastleForge implements ModInitializer {
             for (var voxel : plan.voxels()) {
                 var v = voxel.pos(); desired.add(new Desired(new BlockPos(v.x(),v.y(),v.z()),palette.resolve(voxel.material())));
             }
-            summary = "CLASSIC / " + plan.condition() + "; relief " + plan.relief();
+            var identity = CastleIdentity.generate(level.getSeed(),ox,oz,region,plan.condition());
+            details = identity.oneLine() + "; heraldry: " + identity.heraldry()
+                + "; classic reference plan (no terraced report).";
+            summary = identity.name() + " / CLASSIC / " + plan.condition() + "; relief " + plan.relief();
         }
         List<Edit> edits = new ArrayList<>();
         for (Desired cell : desired) {
@@ -152,10 +164,18 @@ public final class CastleForge implements ModInitializer {
             checks.add(new Check(pos,before));
             if (!before.equals(after)) edits.add(new Edit(pos,before,after));
         }
-        s.previews.put(user,new Preview(level,List.copyOf(edits),List.copyOf(checks),System.nanoTime()));
+        s.previews.put(user,new Preview(level,List.copyOf(edits),List.copyOf(checks),System.nanoTime(),details));
         LOGGER.info("CastleForge preview {} at {},{}: {} edits; {}",user,ox,oz,edits.size(),summary);
         return say(source,"PREVIEW only: " + region.style() + " at " + ox + "," + oz + "; " + summary + "; "
             + edits.size() + " edits. /castleforge build confirm within 120s. Disposable test world only; back up first.");
+    }
+    private int inspect(CommandSourceStack source) throws IOException {
+        Preview p = session(source).previews.get(owner(source));
+        if (p == null || System.nanoTime() - p.created > PREVIEW_LIFETIME_NS
+            || p.level != source.getLevel()) {
+            throw new IllegalArgumentException("No fresh preview to inspect. Run /castleforge preview first.");
+        }
+        return say(source,"CastleForge design report: " + p.details);
     }
     private int build(CommandSourceStack source) throws IOException {
         Session s = session(source);
@@ -215,7 +235,7 @@ public final class CastleForge implements ModInitializer {
     private record Desired(BlockPos pos, BlockState state) {}
     private record Check(BlockPos pos, BlockState expected) {}
     private record Edit(BlockPos pos, BlockState before, BlockState after) {}
-    private record Preview(ServerLevel level, List<Edit> edits, List<Check> checks, long created) {}
+    private record Preview(ServerLevel level, List<Edit> edits, List<Check> checks, long created, String details) {}
     private static boolean matchesUndo(BlockState actual, BlockState expected) {
         // Neighbor updates recompute stair shape; never ignore facing, half, material or waterlogging changes.
         if (expected.getBlock() instanceof StairBlock && actual.is(expected.getBlock()))

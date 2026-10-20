@@ -3,7 +3,15 @@
 Terrain-aware procedural castles and independent culture regions for Minecraft.
 Original idea: Emre's brother. Concept and project direction: Emre (`badmon61`).
 
-## Status: 0.2.0-alpha.1 — opt-in terraced architecture
+## Status: 0.2.1-alpha.1 — identity and architectural diagnostics
+
+**New in 0.2.1:** Seed-stable, culture-dependent castle names and regional dynasties, symbolic heraldry, age, chronological construction milestones, and a condition-derived *planned* occupancy category. These are narrative metadata only: **no NPCs, loot, actual banners or timeline simulation are spawned**. The two existing castle shapes and culture map remain unchanged. Different regions may coincidentally share generated names; uniqueness is not promised.
+
+The terraced preview now includes a quick dimensional/material/access summary. Use `/castleforge inspect` after `/castleforge preview terraced` (or classic preview) to read the current design report. Preview and inspect are read-only. Reports expire with the preview (120 seconds), and are cleared by build confirmation.
+
+Small visible facade improvement: culture-sensitive accent blocks for trim and timber. This changes palette appearance, **not** the geometry generator, region borders or world settings. Refer to [identity and diagnostic contract](docs/IDENTITY_AND_DIAGNOSTICS.md).
+
+## Previously: 0.2.0-alpha.1 — opt-in terraced architecture
 
 **Disposable test worlds only. No automatic world generation and no completed in-game acceptance test.**
 
@@ -32,13 +40,14 @@ Automatic exploration-time generation; automatically measured biome scaling; arb
 Target remains **Minecraft Java 26.1.2**, **Java 25**, **Fabric Loader 0.19.5+**, **Fabric API 0.155.3+26.1.2**.
 
 1. Use a separate Prism/Fabric instance and a new disposable Creative world with commands enabled.
-2. Install `castleforge-fabric-0.2.0-alpha.1.jar` from a successful branch Actions build plus the matching Fabric API. Replace the old CastleForge JAR; do not install two versions or a `-sources.jar`.
+2. Install `castleforge-fabric-0.2.1-alpha.1.jar` from a successful branch Actions build plus the matching Fabric API. Replace the old CastleForge JAR; do not install two versions or a `-sources.jar`.
 3. Start on superflat to verify the build workflow, then test a second disposable world with open, gradual slopes. The new survey is 105 × 105 blocks; the whole site must already be loaded.
 4. Execute separately:
 
 ```mcfunction
 /castleforge region
 /castleforge preview terraced
+/castleforge inspect
 /castleforge build confirm
 /castleforge status
 ```
@@ -75,7 +84,7 @@ The CI uses pinned Gradle; a Gradle wrapper is not yet checked in. Pure generato
 bash scripts/verify-core.sh
 ```
 
-The classic suite checks 50 seeds. The new suite checks **32 seeds × 5 synthetic terrains = 160 combinations**, all eight culture profiles, all four rotations, roofs and condition states, determinism, navigation, bounded supports, rejection cases, negative/world-edge coordinates and concurrent planning. A golden geometry digest detects unintended generator drift. Repeated per-voxel assertions are not millions of different test scenarios.
+The classic suite checks 50 seeds. A third suite checks narrative identities across 100 seeds and eight cultures, coherent chronology, region-level dynasties, diagnostic counts and reporting. The new suite checks **32 seeds × 5 synthetic terrains = 160 combinations**, all eight culture profiles, all four rotations, roofs and condition states, determinism, navigation, bounded supports, rejection cases, negative/world-edge coordinates and concurrent planning. A golden geometry digest detects unintended generator drift. Repeated per-voxel assertions are not millions of different test scenarios.
 
 Passing these checks is **not a Minecraft launch, entity-pathfinding, block-physics or visual test**. See [terraced architecture and acceptance checklist](docs/TERRACED_ARCHITECTURE.md), [original architecture](docs/ARCHITECTURE.md), [classic test checklist](docs/TESTING.md), [initial alpha validation](docs/VALIDATION.md), and [long-term roadmap](docs/ROADMAP.md).
 
