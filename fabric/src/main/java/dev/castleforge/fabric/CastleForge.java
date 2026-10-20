@@ -253,6 +253,9 @@ public final class CastleForge implements ModInitializer {
                         if (undo) { conflicts++; index++; work++; continue; }
                         finished=true; message="Stopped: world changed at " + e.pos.toShortString() + ". Partial build remains; use undo."; say(source,message); return;
                     }
+                    // Neighbor updates may already have cleared replaceable vegetation to the target air.
+                    // Do not treat a no-op setBlock result as failure or claim it as our own applied edit.
+                    if (actual.equals(target)) { index++; work++; continue; }
                     if (!level.setBlock(e.pos,target,Block.UPDATE_ALL)) {
                         if (undo) { conflicts++; index++; work++; continue; }
                         finished=true; message="Stopped: placement rejected. Use undo for the partial build."; say(source,message); return;
