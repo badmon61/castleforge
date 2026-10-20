@@ -40,17 +40,32 @@ record Palette(Block masonry, Block weathered, Block floor, Block roof) {
         Direction facing = Direction.valueOf(block.facing().name());
         return switch (block.kind()) {
             case AIR -> Blocks.AIR.defaultBlockState();
-            case FOUNDATION, WALL, TRIM -> masonry.defaultBlockState();
+            case FOUNDATION, WALL -> masonry.defaultBlockState();
+            case TRIM -> decorativeTrim(masonry).defaultBlockState();
             case WEATHERED -> weathered.defaultBlockState();
             case FLOOR -> floor.defaultBlockState();
             case ROOF -> roof.defaultBlockState();
-            case TIMBER -> Blocks.STRIPPED_SPRUCE_LOG.defaultBlockState();
+            case TIMBER -> decorativeTimber(floor).defaultBlockState();
             case GLASS -> Blocks.GLASS.defaultBlockState();
             case LIGHT -> Blocks.GLOWSTONE.defaultBlockState();
             case STAIR -> stairs(masonry).defaultBlockState().setValue(StairBlock.FACING, facing);
             case ROOF_STAIR -> stairs(roof).defaultBlockState().setValue(StairBlock.FACING, facing);
             case LADDER -> Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, facing);
         };
+    }
+    private static Block decorativeTrim(Block wall) {
+        if (wall == Blocks.SANDSTONE || wall == Blocks.CUT_SANDSTONE) return Blocks.CHISELED_SANDSTONE;
+        if (wall == Blocks.COBBLESTONE) return Blocks.POLISHED_ANDESITE;
+        if (wall == Blocks.DEEPSLATE_BRICKS) return Blocks.POLISHED_DEEPSLATE;
+        if (wall == Blocks.QUARTZ_BRICKS) return Blocks.QUARTZ_PILLAR;
+        return Blocks.CHISELED_STONE_BRICKS;
+    }
+    private static Block decorativeTimber(Block flooring) {
+        if (flooring == Blocks.SPRUCE_PLANKS) return Blocks.STRIPPED_SPRUCE_LOG;
+        if (flooring == Blocks.DARK_OAK_PLANKS) return Blocks.STRIPPED_DARK_OAK_LOG;
+        if (flooring == Blocks.OAK_PLANKS) return Blocks.STRIPPED_OAK_LOG;
+        if (flooring == Blocks.SMOOTH_SANDSTONE) return Blocks.STRIPPED_ACACIA_LOG;
+        return Blocks.STRIPPED_SPRUCE_LOG;
     }
     private static Block stairs(Block block) {
         if (block == Blocks.SANDSTONE || block == Blocks.TERRACOTTA) return Blocks.SANDSTONE_STAIRS;
