@@ -6,3 +6,4 @@ mkdir -p "$output"
 find core/src/main/java core/src/test/java -name '*.java' -print > "$output/sources.txt"
 javac --release 21 -d "$output" @"$output/sources.txt"
 java -Xmx512m -cp "$output" dev.castleforge.core.CoreVerification
+java -Xmx512m -cp "$output" dev.castleforge.core.TerracedVerification

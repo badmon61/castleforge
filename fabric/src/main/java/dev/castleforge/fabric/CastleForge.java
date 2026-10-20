@@ -2,6 +2,7 @@ package dev.castleforge.fabric;
 
 import dev.castleforge.core.CastlePlanner;
 import dev.castleforge.core.CultureMap;
+import dev.castleforge.core.TerracedCastlePlanner;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -18,6 +19,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.slf4j.Logger;
@@ -37,13 +39,20 @@ public final class CastleForge implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> dispatcher.register(
             Commands.literal("castleforge")
                 .requires(s -> s.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
-                .executes(c -> say(c.getSource(), "CastleForge alpha: /castleforge region | preview [x z] | build confirm | status | cancel | undo. TEST WORLDS ONLY."))
+                .executes(c -> say(c.getSource(), "CastleForge alpha: /castleforge region | preview [terraced] [x z] | build confirm | status | cancel | undo. TEST WORLDS ONLY."))
                 .then(Commands.literal("region").executes(c -> safely(c.getSource(), () -> region(c.getSource()))))
-                .then(Commands.literal("preview").executes(c -> safely(c.getSource(), () -> preview(c.getSource(), null, null)))
+                .then(Commands.literal("preview")
+                    .executes(c -> safely(c.getSource(), () -> preview(c.getSource(), null, null, false)))
                     .then(Commands.argument("x", IntegerArgumentType.integer(-29_999_800, 29_999_800))
                         .then(Commands.argument("z", IntegerArgumentType.integer(-29_999_800, 29_999_800))
                             .executes(c -> safely(c.getSource(), () -> preview(c.getSource(),
-                                IntegerArgumentType.getInteger(c,"x"), IntegerArgumentType.getInteger(c,"z")))))))
+                                IntegerArgumentType.getInteger(c,"x"), IntegerArgumentType.getInteger(c,"z"), false)))))
+                    .then(Commands.literal("terraced")
+                        .executes(c -> safely(c.getSource(), () -> preview(c.getSource(), null, null, true)))
+                        .then(Commands.argument("x", IntegerArgumentType.integer(-29_999_800, 29_999_800))
+                            .then(Commands.argument("z", IntegerArgumentType.integer(-29_999_800, 29_999_800))
+                                .executes(c -> safely(c.getSource(), () -> preview(c.getSource(),
+                                    IntegerArgumentType.getInteger(c,"x"), IntegerArgumentType.getInteger(c,"z"), true)))))))
                 .then(Commands.literal("build").then(Commands.literal("confirm")
                     .executes(c -> safely(c.getSource(), () -> build(c.getSource())))))
                 .then(Commands.literal("status").executes(c -> safely(c.getSource(), () -> status(c.getSource()))))
@@ -82,7 +91,7 @@ public final class CastleForge implements ModInitializer {
         return say(source, "Culture " + r.style() + " / " + r.id() + "; nominal spacing " + r.nominalSpacing()
             + " blocks; border blend " + Math.round(r.borderBlend()*100) + "%. Scale uses a configured reference, not automatic biome measurement.");
     }
-    private int preview(CommandSourceStack source, Integer x, Integer z) throws IOException {
+    private int preview(CommandSourceStack source, Integer x, Integer z, boolean terraced) throws IOException {
         ServerLevel level = source.getLevel(); overworld(level);
         Session s = session(source);
         if (s.job != null && !s.job.finished) throw new IllegalArgumentException("A placement or undo is already running.");
@@ -91,36 +100,62 @@ public final class CastleForge implements ModInitializer {
         s.previews.entrySet().removeIf(e -> System.nanoTime() - e.getValue().created > PREVIEW_LIFETIME_NS);
         if (s.previews.size() >= 8) throw new IllegalArgumentException("Too many previews; try after another preview expires.");
         BlockPos p = BlockPos.containing(source.getPosition());
+        int radius = terraced ? TerracedCastlePlanner.RADIUS : CastlePlanner.RADIUS;
         int ox = x == null ? p.getX() : x;
-        int oz = z == null ? p.getZ() - CastlePlanner.RADIUS - 4 : z;
-        int radius = CastlePlanner.RADIUS;
+        int oz = z == null ? p.getZ() - radius - 4 : z;
+        if (Math.abs((long)ox) > 29_999_800 || Math.abs((long)oz) > 29_999_800)
+            throw new IllegalArgumentException("Site too near world coordinate limit.");
         for (int cx = (ox-radius)>>4; cx <= (ox+radius)>>4; cx++)
             for (int cz = (oz-radius)>>4; cz <= (oz+radius)>>4; cz++)
                 if (!level.getChunkSource().hasChunk(cx,cz)) throw new IllegalArgumentException("Entire site must already be loaded. Walk nearer; no chunks are force-generated.");
         var region = s.settings.map(level.getSeed()).at(ox,oz);
-        var plan = CastlePlanner.plan(level.getSeed(), ox, oz, (px,pz) -> {
+        BlockState centerGround = level.getBlockState(new BlockPos(ox,level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,ox,oz)-1,oz));
+        Palette palette = Palette.choose(region.style(), centerGround.is(Blocks.SAND) || centerGround.is(Blocks.RED_SAND) || centerGround.is(Blocks.SANDSTONE));
+        List<Check> checks = new ArrayList<>();
+        TerracedCastlePlanner.Ground ground = (px,pz) -> {
             int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,px,pz);
-            BlockState ground = level.getBlockState(new BlockPos(px,y-1,pz));
-            if (!ground.getFluidState().isEmpty() || !naturalGround(ground))
+            BlockPos pos = new BlockPos(px,y-1,pz);
+            BlockState state = level.getBlockState(pos);
+            checks.add(new Check(pos,state));
+            if (!state.getFluidState().isEmpty() || !naturalGround(state)) {
+                if (terraced) return TerracedCastlePlanner.UNUSABLE;
                 throw new IllegalArgumentException("Unsuitable ground, water or existing structure at " + px + "," + pz);
+            }
             return y;
-        }, region);
-        BlockState ground = level.getBlockState(new BlockPos(ox,level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,ox,oz)-1,oz));
-        Palette palette = Palette.choose(region.style(), ground.is(Blocks.SAND) || ground.is(Blocks.RED_SAND) || ground.is(Blocks.SANDSTONE));
+        };
+        List<Desired> desired = new ArrayList<>();
+        String summary;
+        if (terraced) {
+            var plan = TerracedCastlePlanner.plan(level.getSeed(),ox,oz,ground,region);
+            for (var block : plan.blocks()) {
+                var v = block.pos(); desired.add(new Desired(new BlockPos(v.x(),v.y(),v.z()),palette.resolve(block)));
+            }
+            summary = "TERRACED v1 / " + plan.condition() + "; " + plan.terraces().size() + " courts, "
+                + plan.rooms().size() + " modules, " + plan.targets().size() + " verified access targets; terrace relief "
+                + plan.relief() + "; rotation " + (plan.quarterTurns()*90) + " degrees";
+        } else {
+            var plan = CastlePlanner.plan(level.getSeed(),ox,oz,ground::surfaceY,region);
+            for (var voxel : plan.voxels()) {
+                var v = voxel.pos(); desired.add(new Desired(new BlockPos(v.x(),v.y(),v.z()),palette.resolve(voxel.material())));
+            }
+            summary = "CLASSIC / " + plan.condition() + "; relief " + plan.relief();
+        }
         List<Edit> edits = new ArrayList<>();
-        for (var voxel : plan.voxels()) {
-            var v = voxel.pos(); BlockPos pos = new BlockPos(v.x(),v.y(),v.z());
+        for (Desired cell : desired) {
+            BlockPos pos = cell.pos;
             if (level.isOutsideBuildHeight(pos) || !level.getWorldBorder().isWithinBounds(pos))
                 throw new IllegalArgumentException("Plan exceeds build height or world border.");
-            BlockState before = level.getBlockState(pos), after = palette.resolve(voxel.material());
+            BlockState before = level.getBlockState(pos), after = cell.state;
             if (level.getBlockEntity(pos) != null || !before.getFluidState().isEmpty() || !replaceable(before))
                 throw new IllegalArgumentException("Protected or non-natural block at " + pos.toShortString() + ". Nothing was changed.");
+            // Include unchanged air: a newly obstructed doorway must invalidate confirmation too.
+            checks.add(new Check(pos,before));
             if (!before.equals(after)) edits.add(new Edit(pos,before,after));
         }
-        s.previews.put(user,new Preview(level,List.copyOf(edits),plan,System.nanoTime()));
-        LOGGER.info("CastleForge preview {} at {},{}: {} edits, {}", user,ox,oz,edits.size(),plan.condition());
-        return say(source,"PREVIEW only: " + region.style() + " / " + plan.condition() + " at " + ox + "," + plan.floorY() + "," + oz
-            + "; " + edits.size() + " edits; relief " + plan.relief() + ". /castleforge build confirm within 120s. Back up first; use a throwaway world.");
+        s.previews.put(user,new Preview(level,List.copyOf(edits),List.copyOf(checks),System.nanoTime()));
+        LOGGER.info("CastleForge preview {} at {},{}: {} edits; {}",user,ox,oz,edits.size(),summary);
+        return say(source,"PREVIEW only: " + region.style() + " at " + ox + "," + oz + "; " + summary + "; "
+            + edits.size() + " edits. /castleforge build confirm within 120s. Disposable test world only; back up first.");
     }
     private int build(CommandSourceStack source) throws IOException {
         Session s = session(source);
@@ -128,8 +163,8 @@ public final class CastleForge implements ModInitializer {
         Preview p = s.previews.remove(owner(source));
         if (p == null || System.nanoTime() - p.created > PREVIEW_LIFETIME_NS || p.level != source.getLevel())
             throw new IllegalArgumentException("Run a fresh preview in this dimension first.");
-        for (Edit e : p.edits) {
-            if (!loaded(p.level,e.pos) || !p.level.getBlockState(e.pos).equals(e.before) || p.level.getBlockEntity(e.pos)!=null)
+        for (Check check : p.checks) {
+            if (!loaded(p.level,check.pos) || !p.level.getBlockState(check.pos).equals(check.expected) || p.level.getBlockEntity(check.pos)!=null)
                 throw new IllegalArgumentException("Site changed since preview; nothing was placed. Preview again.");
         }
         s.job = new Job(owner(source), source, p.level, p.edits, false);
@@ -177,8 +212,16 @@ public final class CastleForge implements ModInitializer {
         catch (IllegalArgumentException | IOException e) { source.sendFailure(Component.literal("CastleForge: " + e.getMessage())); return 0; }
         catch (RuntimeException e) { LOGGER.error("CastleForge command failed",e); source.sendFailure(Component.literal("CastleForge failed; see server log. No automatic retry.")); return 0; }
     }
+    private record Desired(BlockPos pos, BlockState state) {}
+    private record Check(BlockPos pos, BlockState expected) {}
     private record Edit(BlockPos pos, BlockState before, BlockState after) {}
-    private record Preview(ServerLevel level, List<Edit> edits, CastlePlanner.Plan plan, long created) {}
+    private record Preview(ServerLevel level, List<Edit> edits, List<Check> checks, long created) {}
+    private static boolean matchesUndo(BlockState actual, BlockState expected) {
+        // Neighbor updates recompute stair shape; never ignore facing, half, material or waterlogging changes.
+        if (expected.getBlock() instanceof StairBlock && actual.is(expected.getBlock()))
+            return actual.setValue(StairBlock.SHAPE, expected.getValue(StairBlock.SHAPE)).equals(expected);
+        return actual.equals(expected);
+    }
     private static final class Session {
         final WorldSettings settings; final Map<UUID,Preview> previews = new HashMap<>();
         Job job, lastBuild;
@@ -203,7 +246,10 @@ public final class CastleForge implements ModInitializer {
                     }
                     unloadedTicks=0;
                     BlockState expected = undo ? e.after : e.before, target = undo ? e.before : e.after;
-                    if (level.getBlockEntity(e.pos)!=null || !level.getBlockState(e.pos).equals(expected)) {
+                    BlockState actual = level.getBlockState(e.pos);
+                    boolean matches = undo ? matchesUndo(actual,expected) : actual.equals(expected)
+                        || (expected.canBeReplaced() && actual.isAir());
+                    if (level.getBlockEntity(e.pos)!=null || !matches) {
                         if (undo) { conflicts++; index++; work++; continue; }
                         finished=true; message="Stopped: world changed at " + e.pos.toShortString() + ". Partial build remains; use undo."; say(source,message); return;
                     }
