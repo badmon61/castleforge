@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "CastleForge",
   "description": "Experimental terrain-aware castles and deterministic culture regions. Manual prototype only.",
-  "authors": ["Emre Kuvvet", "CastleForge contributors"],
+  "authors": ["badmon61", "CastleForge contributors"],
   "contact": {"sources": "https://github.com/badmon61/castleforge", "issues": "https://github.com/badmon61/castleforge/issues"},
   "environment": "*",
   "entrypoints": {"main": ["dev.castleforge.fabric.CastleForge"]},

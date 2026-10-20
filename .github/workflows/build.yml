@@ -21,8 +21,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.4.0'
-      - name: Compile and test
-        run: gradle --no-daemon build --stacktrace
+      - name: Compile and verify generator
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon build --stacktrace 2>&1 | tee build-verification.log
       - uses: actions/upload-artifact@v4
         with:
           name: castleforge-fabric-26.1.2
@@ -33,6 +36,7 @@ jobs:
         with:
           name: verification-reports
           path: |
+            build-verification.log
             core/build/reports/
             fabric/build/reports/
-          if-no-files-found: ignore
+          if-no-files-found: warn
