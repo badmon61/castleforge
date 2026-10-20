@@ -1,7 +1,7 @@
 plugins { id 'java-library' }
 java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
 tasks.withType(JavaCompile).configureEach { options.release = 21 }
-// Tests deliberately use no external framework: also runnable offline with javac/java 21.
+// Dependency-free suites also run offline with javac/java 21.
 tasks.named('test') { enabled = false }
 tasks.register('verifyCore', JavaExec) {
     dependsOn testClasses
@@ -9,4 +9,11 @@ tasks.register('verifyCore', JavaExec) {
     mainClass = 'dev.castleforge.core.CoreVerification'
     maxHeapSize = '512m'
 }
-tasks.named('check') { dependsOn verifyCore }
+tasks.register('verifyTerraces', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.castleforge.core.TerracedVerification'
+    maxHeapSize = '512m'
+    mustRunAfter verifyCore
+}
+tasks.named('check') { dependsOn verifyCore, verifyTerraces }
