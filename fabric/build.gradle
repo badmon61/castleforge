@@ -1,0 +1,20 @@
+plugins { id 'net.fabricmc.fabric-loom' }
+base { archivesName = 'castleforge-fabric' }
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(25) }
+    withSourcesJar()
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    implementation project(':core')
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+jar {
+    dependsOn ':core:classes'
+    from project(':core').sourceSets.main.output
+}
