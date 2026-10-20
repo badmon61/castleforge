@@ -93,7 +93,24 @@ wall-walk circuit. No claim of production-worthy aesthetics or owner approval.
   player traversal, runtime lighting, slab/neighbor-update or undo test.**
 - V1's supplied screenshots establish that the owner ran the previous build;
   they cannot establish runtime correctness of alpha.2.
-- Full Fabric build and runtime artifact: see the CI record below once built.
+- Full Java 25 / pinned Gradle 9.4.0 / Fabric build passed on implementation
+  commit `1a1f9665880587bf2c27b01263c398801f76ce0f` in
+  [Actions 39472126739](https://github.com/badmon61/castleforge/actions/runs/39472126739).
+  All four suites passed; runtime metadata/classes and archive boundaries
+  passed. Linux/Java 25 and local Windows/Java 21 produced the same final
+  block export digest:
+  `b386fb67d8792062e7584e9d235cf0e7df985fe7a5969917d2b8a998eeae8252`.
+
+## Built runtime artifact
+
+[Download the build ZIP](https://github.com/badmon61/castleforge/actions/runs/39472126739/artifacts/12287682707).
+It contains runtime and sources JARs; install only
+`castleforge-fabric-0.3.0-alpha.2.jar`.
+
+Runtime JAR SHA-256:
+`8cc64de9ef0510ead4e02f05c3f47a386f6274c016f66f2622b27112ed180eda`.
+This is the JAR digest, not the download ZIP digest.
+The subsequent commit records build evidence only; it changes no runtime code.
 
 ## Reproduce / narrowly test
 
