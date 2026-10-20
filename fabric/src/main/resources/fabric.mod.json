@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "castleforge",
+  "version": "${version}",
+  "name": "CastleForge",
+  "description": "Experimental terrain-aware castles and deterministic culture regions. Manual prototype only.",
+  "authors": ["badmon61", "CastleForge contributors"],
+  "contact": {"sources": "https://github.com/badmon61/castleforge", "issues": "https://github.com/badmon61/castleforge/issues"},
+  "environment": "*",
+  "entrypoints": {"main": ["dev.castleforge.fabric.CastleForge"]},
+  "depends": {"fabricloader": ">=0.19.5", "minecraft": "26.1.2", "java": ">=25", "fabric-api": ">=0.155.3"}
+}
