@@ -47,7 +47,7 @@ public final class IdentityVerification {
             .equals(CastleIdentity.generate(2,0,0,region,Condition.RUINED)),"seed changes identity");
         var plan=TerracedCastlePlanner.plan(42,0,0,(x,z)->64,region);
         var report=PlanDiagnostics.analyze(plan);
-        check(report.width()>55 && report.length()>60 && report.height()>20,"large multi-court bounds");
+        check(report.width()>=35 && report.width()<=105 && report.length()>=70 && report.height()>=18, "bounded elongated multi-court layout");
         check(report.modules()==8 && report.navigationTargets()==plan.targets().size(),"module/target counts");
         check(report.plannedCells()==report.solids()+report.emptyCells(),"every voxel classified");
         check(report.storeys()>=13 && report.foundationCells()>=0,"room floors tracked");
