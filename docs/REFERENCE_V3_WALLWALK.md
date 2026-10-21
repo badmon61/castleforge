@@ -105,8 +105,25 @@ has reached the requested hand-built visual standard.
 
 ## Build and runtime gates
 
-The full pinned Java 25 / Gradle 9.4.0 / Fabric build is recorded after CI finishes.
-Do not install a JAR unless the successful run and its exact hash are listed.
+Full pinned Java 25 / Gradle 9.4.0 / Fabric build **passed in 37 seconds** on
+implementation commit `30304ce362b194609bf733caddf096bb7ed32b21`:
+[Actions 39654766926](https://github.com/badmon61/castleforge/actions/runs/39654766926).
+All four suites passed; reference took 11.03 s on that runner. Linux/Java 25
+and Windows/Java 21 block TSV exports match byte for byte (digest above).
+
+[Build ZIP artifact 12369699086](https://github.com/badmon61/castleforge/actions/runs/39654766926/artifacts/12369699086)
+contains runtime and sources. Install only `castleforge-fabric-0.3.0-alpha.3.jar`.
+The artifact was downloaded and independently inspected: mod version/target,
+new `WallWalk`/library classes and old culture/planner classes, Java 21 core
+and Java 25 adapter bytecode, no bundled Minecraft binaries or test suites.
+Both downloaded ZIP digests match GitHub's artifact metadata.
+
+Runtime JAR SHA-256:
+`590ccbb3a684b2cab609775913de84fb16df93dd75210d09b9341afa10aa6efa`.
+
+[Verification artifact 12369808895](https://github.com/badmon61/castleforge/actions/runs/39654766926/artifacts/12369808895)
+contains the build log, actual exported blocks/model and JAR hash. A subsequent
+documentation commit records this result and changes no runtime code.
 
 No Minecraft client/server was launched in this round. Actual player movement,
 stairs after neighbor updates, lighting, reload, cancellation/undo and performance
