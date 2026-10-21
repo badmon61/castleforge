@@ -34,6 +34,9 @@ public final class ReferenceExport {
         model.append("\nFacade bays\n");plan.architecture().facadeBays().forEach(p->model.append(p).append('\n'));
         model.append("\nCourt uses\n");plan.architecture().courtFeatures().forEach(p->model.append(p).append('\n'));
         model.append("\nRoof lights\n");plan.architecture().dormers().forEach(p->model.append(p).append('\n'));
+        model.append("\nWall-walk sections (support-block coordinates, not feet)\n");
+        plan.architecture().wallWalks().forEach(w->model.append(w.id()).append(" owner=").append(w.moduleId())
+            .append(" deckCells=").append(w.deck().size()).append(" guardCells=").append(w.guards().size()).append('\n'));
         Files.writeString(directory.resolve("model.txt"),model,StandardCharsets.UTF_8);
         System.out.println(model.substring(0,model.indexOf("\n\nModules")));
         System.out.println("Exported "+directory.toAbsolutePath());

@@ -9,7 +9,7 @@ import static dev.castleforge.core.architecture.ReferenceBlock.*;
 
 /** Bounded, immutable model -> owned geometry -> furnishings -> independent quality validation. */
 public final class ReferenceCastlePlanner {
-    public static final int VERSION=2,RADIUS=54,MAX_BLOCKS=200_000,MAX_RELIEF=3;
+    public static final int VERSION=3,RADIUS=54,MAX_BLOCKS=200_000,MAX_RELIEF=3;
     public record Plan(List<ReferenceBlock> blocks,ArchitectureModel architecture,QualityReport report,
             int floorY,int relief,int quarterTurns,CultureMap.Region region,int originX,int originZ) {
         public Plan { blocks=List.copyOf(blocks); }

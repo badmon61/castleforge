@@ -3,7 +3,7 @@
 Terrain-aware procedural castles and independent culture regions for Minecraft.
 Original idea: Emre's brother. Concept and project direction: Emre (`badmon61`).
 
-## Status: 0.3.0-alpha.2 - architectural detail study, not visually accepted
+## Status: 0.3.0-alpha.3 - connected wall-walk study, not visually accepted
 
 **Experimental, opt-in, disposable test worlds only. No automatic generation.**
 
@@ -11,6 +11,10 @@ Original idea: Emre's brother. Concept and project direction: Emre (`badmon61`).
 V2 adds real residential partitions, wider framed facade bays, roof lights,
 gable joinery, a furnished court and corrected hall furniture proportions.
 It remains a fixed-layout study, below the intended hand-built benchmark.
+V3 adds a modeled three-wide wall-walk circuit through the four corner towers
+and upper gatehouse, a court stair, explicit parapets and post-furnishing checks.
+The independent elevated centreline is 340 blocks; this is not a measured
+Minecraft traversal duration. See [v3 evidence and focused test](docs/REFERENCE_V3_WALLWALK.md).
 See [the rejection and design decision](docs/ADR_0002_VISUAL_REJECTION_AND_DETAIL_STUDY.md),
 [v2 comparison and evidence](docs/REFERENCE_V2_STUDY.md) and the preserved
 [long-term product direction](docs/PRODUCT_DIRECTION.md).

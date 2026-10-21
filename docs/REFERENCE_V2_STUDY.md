@@ -116,7 +116,7 @@ The subsequent commit records build evidence only; it changes no runtime code.
 
 ```powershell
 ./scripts/verify-core.ps1 -ExportReference
-python scripts/render-reference-set.py build/reference docs/evidence/reference-v2
+python scripts/render-reference-set.py build/reference docs/evidence/reference-v2 --label "Falkenwacht v2"
 ```
 
 Linux/CI: build with the pinned JDK 25 / Gradle 9.4.0; run ReferenceExport

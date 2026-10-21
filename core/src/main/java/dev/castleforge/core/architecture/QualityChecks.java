@@ -62,6 +62,27 @@ public final class QualityChecks {
                 for (int y=a.minY(); y<=a.maxY(); y++) air(blocks,new Pos(x,y,z),"connection " + c.id());
             }
         }
+        for(WallWalk walk:model.wallWalks()) {
+            for(Pos deck:walk.deck()) {
+                ReferenceBlock block=blocks.get(deck);
+                require(block!=null&&(block.fullCube()||block.stair()),"wall-walk deck "+walk.id(),deck);
+                // The full route and its headroom are checked again after furniture below.
+            }
+            for(Pos guard:walk.guards()) {
+                ReferenceBlock block=blocks.get(guard),below=blocks.get(offset(guard,0,-1,0));
+                require(block!=null&&block.fullCube(),"wall-walk guard "+walk.id(),guard);
+                require(below!=null&&below.fullCube(),"wall-walk guard support "+walk.id(),guard);
+            }
+            for(Pos deck:walk.deck())for(Facing side:List.of(Facing.NORTH,Facing.EAST,Facing.SOUTH,Facing.WEST)) {
+                boolean passage=false;
+                for(int dy=0;dy<=2;dy++)if(model.circulation().contains(offset(deck,side.dx,dy,side.dz)))passage=true;
+                if(!passage) {
+                    Pos edge=offset(deck,side.dx,1,side.dz);
+                    ReferenceBlock guard=blocks.get(edge);
+                    require(guard!=null&&guard.fullCube(),"unguarded wall-walk edge "+walk.id(),edge);
+                }
+            }
+        }
         for (StairFlight s : model.stairs()) verifyStair(model, blocks, s);
         for (Window w : model.windows()) {
             Box a=w.opening();
@@ -156,6 +177,23 @@ public final class QualityChecks {
         for(Room r:model.rooms()) require(connected.contains(r.moduleId()),"disconnected module",r.moduleId());
         Set<String> stairIds=new HashSet<>();
         Set<String> detailIds=new HashSet<>();
+        Set<Pos> walkDeck=new HashSet<>(),walkGuards=new HashSet<>();
+        for(WallWalk walk:model.wallWalks()) {
+            require(walk!=null&&walk.id()!=null&&detailIds.add(walk.id()),"wall-walk identity",walk);
+            var owner=modules.get(walk.moduleId());
+            require(owner!=null&&!walk.deck().isEmpty()&&!walk.guards().isEmpty(),"wall-walk owner/program",walk.id());
+            Box a=owner.bounds();
+            for(Pos p:walk.deck()) {
+                require(walkDeck.add(p),"duplicate wall-walk deck",p);
+                require(p.x()>=a.minX()-2&&p.x()<=a.maxX()+2&&p.z()>=a.minZ()-2&&p.z()<=a.maxZ()+2&&p.y()>0&&p.y()<=a.maxY(),"wall-walk outside owner envelope",p);
+                require(model.circulation().contains(offset(p,0,1,0)),"wall-walk missing route",p);
+            }
+            for(Pos p:walk.guards()) {
+                require(walkGuards.add(p),"duplicate wall-walk guard ownership",p);
+                require(!model.clearance().contains(p),"wall-walk guard obstructs route",p);
+                require(p.x()>=a.minX()-3&&p.x()<=a.maxX()+3&&p.z()>=a.minZ()-3&&p.z()<=a.maxZ()+3&&p.y()>0&&p.y()<=a.maxY()+2,"wall-walk guard outside owner envelope",p);
+            }
+        }
         for(Partition p:model.partitions()) {
             require(p!=null&&p.id()!=null&&detailIds.add(p.id()),"partition id",p);
             var owner=modules.get(p.moduleId());Box a=p.wall();

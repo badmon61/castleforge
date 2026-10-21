@@ -10,12 +10,14 @@ final class ModuleLibrary {
     static void build(ArchitectureModel model,OwnedBlockBuffer b){
         for(Module m:model.modules())shell(model,m,b);
         for(Module m:model.modules())roof(model,m,b);
-        for(StairFlight f:model.stairs())flight(model,f,b);
         for(Window w:model.windows())window(model,w,b);
         ArchitecturalDetails.build(model,b);
+        WallWalkLibrary.build(model,b);
+        for(StairFlight f:model.stairs())flight(model,f,b);
         for(Pos p:model.clearance())b.airIfEmpty("clearance",p.x(),p.y(),p.z());
     }
     private static void shell(ArchitectureModel model,Module m,OwnedBlockBuffer b){
+        if(m.type()==ModuleType.WALL_STAIR)return;
         Box a=m.bounds();String id=m.id();
         for(int x=a.minX();x<=a.maxX();x++)for(int z=a.minZ();z<=a.maxZ();z++){
             if(!m.footprint(x,z))continue;
@@ -46,14 +48,15 @@ final class ModuleLibrary {
             }
         }
         // Crenels are purposeful bays, kept above lower rooms and out of main circulation.
-        if(m.roof()==RoofType.BATTLEMENT){
+        if(m.roof()==RoofType.BATTLEMENT&&m.type()!=ModuleType.CURTAIN){
             for(int x=a.minX();x<=a.maxX();x++)for(int z=a.minZ();z<=a.maxZ();z++)
                 if(m.footprint(x,z)&&!m.inside(x,z)&&Math.floorMod(x+z,4)<2)
                     b.box(id,x,a.maxY()+1,z,x,a.maxY()+2,z,Kind.STONE);
         }
     }
-    private static int wallHeight(Module m,int x){return m.type()==ModuleType.GATEHOUSE&&Math.abs(x)<=4?13:m.bounds().maxY();}
+    private static int wallHeight(Module m,int x){return m.type()==ModuleType.CURTAIN?6:m.type()==ModuleType.GATEHOUSE&&Math.abs(x)<=4?13:m.bounds().maxY();}
     private static void roof(ArchitectureModel model,Module m,OwnedBlockBuffer b){
+        if(m.type()==ModuleType.WALL_STAIR)return;
         if(m.roof()==RoofType.BATTLEMENT){
             if(m.type()!=ModuleType.CURTAIN){Box a=m.bounds();for(int x=a.minX();x<=a.maxX();x++)for(int z=a.minZ();z<=a.maxZ();z++)
                 if(m.inside(x,z))b.put(m.id(),x,a.maxY(),z,Kind.TRIM);}

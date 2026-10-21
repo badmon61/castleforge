@@ -8,7 +8,8 @@ import java.util.*;
 public record ArchitectureModel(String variant, List<Module> modules, List<Room> rooms,
         List<Connection> connections,List<StairFlight> stairs,List<Window> windows,
         Set<Pos> clearance,Set<Pos> circulation,Pos entrance,
-        List<Partition> partitions,List<FacadeBay> facadeBays,List<CourtFeature> courtFeatures,List<Dormer> dormers) {
+        List<Partition> partitions,List<FacadeBay> facadeBays,List<CourtFeature> courtFeatures,List<Dormer> dormers,
+        List<WallWalk> wallWalks) {
     public ArchitectureModel {
         modules=List.copyOf(modules);rooms=List.copyOf(rooms);connections=List.copyOf(connections);
         stairs=List.copyOf(stairs);windows=List.copyOf(windows);
@@ -16,8 +17,9 @@ public record ArchitectureModel(String variant, List<Module> modules, List<Room>
         circulation=Collections.unmodifiableSet(new LinkedHashSet<>(circulation));
         partitions=List.copyOf(partitions);facadeBays=List.copyOf(facadeBays);courtFeatures=List.copyOf(courtFeatures);
         dormers=List.copyOf(dormers);
+        wallWalks=List.copyOf(wallWalks);
     }
-    public enum ModuleType { KEEP, GREAT_HALL, RESIDENCE, SERVICE_WING, GATEHOUSE, CORNER_TOWER, CURTAIN }
+    public enum ModuleType { KEEP, GREAT_HALL, RESIDENCE, SERVICE_WING, GATEHOUSE, CORNER_TOWER, CURTAIN, WALL_STAIR }
     public enum RoomType { GREAT_HALL, KITCHEN, BEDCHAMBER, LIBRARY, STORE, GUARDROOM, STAIR_HALL, SOLAR }
     public enum RoofType { GABLE_X, GABLE_Z, HIP, BATTLEMENT }
     public record Box(int minX,int minY,int minZ,int maxX,int maxY,int maxZ) {
@@ -54,5 +56,12 @@ public record ArchitectureModel(String variant, List<Module> modules, List<Room>
     public record CourtFeature(String id,CourtUse use,Box bounds) {}
     /** Small east-facing roof light, with an explicit owned roof junction; not a declared habitable room. */
     public record Dormer(String id,String moduleId,int frontX,int centerZ,int baseY) {}
+    /** Explicit deck/support cells and parapets/merlons. Routes remain part of global circulation. */
+    public record WallWalk(String id,String moduleId,Set<Pos> deck,Set<Pos> guards) {
+        public WallWalk {
+            deck=Collections.unmodifiableSet(new LinkedHashSet<>(deck));
+            guards=Collections.unmodifiableSet(new LinkedHashSet<>(guards));
+        }
+    }
     public Module module(String id) { return modules.stream().filter(m->m.id.equals(id)).findFirst().orElseThrow(); }
 }

@@ -16,6 +16,7 @@ final class ReferenceLayout {
     private final List<Partition> partitions=new ArrayList<>();
     private final List<FacadeBay> bays=new ArrayList<>();
     private final List<CourtFeature> courtFeatures=new ArrayList<>();
+    private final List<WallWalk> wallWalks=new ArrayList<>();
     private final Set<Pos> circulation=new LinkedHashSet<>(),clearance=new LinkedHashSet<>();
     static ArchitectureModel create(){return new ReferenceLayout().createModel();}
     private ArchitectureModel createModel(){
@@ -25,15 +26,16 @@ final class ReferenceLayout {
         module("kitchen",ModuleType.SERVICE_WING,18,4,36,19,10,List.of(0),RoofType.HIP,0);
         module("service",ModuleType.SERVICE_WING,-39,-11,-21,12,16,List.of(0,8),RoofType.GABLE_Z,0);
         module("gate",ModuleType.GATEHOUSE,-11,28,11,40,19,List.of(0,8),RoofType.HIP,0);
-        module("northwest",ModuleType.CORNER_TOWER,-49,-40,-40,-31,13,List.of(0),RoofType.HIP,2);
-        module("northeast",ModuleType.CORNER_TOWER,40,-40,49,-31,17,List.of(0),RoofType.HIP,2);
-        module("southwest",ModuleType.CORNER_TOWER,-49,30,-40,40,10,List.of(0),RoofType.BATTLEMENT,2);
-        module("southeast",ModuleType.CORNER_TOWER,40,30,49,40,14,List.of(0),RoofType.HIP,2);
+        module("northwest",ModuleType.CORNER_TOWER,-49,-40,-40,-31,13,List.of(0,6),RoofType.HIP,1);
+        module("northeast",ModuleType.CORNER_TOWER,40,-40,49,-31,17,List.of(0,6),RoofType.HIP,1);
+        module("southwest",ModuleType.CORNER_TOWER,-49,30,-40,40,10,List.of(0,6),RoofType.BATTLEMENT,1);
+        module("southeast",ModuleType.CORNER_TOWER,40,30,49,40,14,List.of(0,6),RoofType.HIP,1);
         module("northwall",ModuleType.CURTAIN,-39,-40,39,-38,6,List.of(0),RoofType.BATTLEMENT,0);
         module("westwall",ModuleType.CURTAIN,-49,-30,-47,29,6,List.of(0),RoofType.BATTLEMENT,0);
         module("eastwall",ModuleType.CURTAIN,47,-30,49,29,6,List.of(0),RoofType.BATTLEMENT,0);
-        module("southwall-west",ModuleType.CURTAIN,-39,38,-12,40,6,List.of(0),RoofType.BATTLEMENT,0);
-        module("southwall-east",ModuleType.CURTAIN,12,38,39,40,6,List.of(0),RoofType.BATTLEMENT,0);
+        module("southwall-west",ModuleType.CURTAIN,-39,37,-12,40,12,List.of(0),RoofType.BATTLEMENT,0);
+        module("southwall-east",ModuleType.CURTAIN,12,37,39,40,12,List.of(0),RoofType.BATTLEMENT,0);
+        module("wall-stair",ModuleType.WALL_STAIR,-45,14,-41,26,10,List.of(0,6),RoofType.BATTLEMENT,0);
         courtFeatures.add(new CourtFeature("well",CourtUse.COVERED_WELL,new Box(-10,0,3,-4,7,9)));
         courtFeatures.add(new CourtFeature("herbs",CourtUse.HERB_GARDEN,new Box(-35,0,20,-25,2,28)));
         courtFeatures.add(new CourtFeature("arbor",CourtUse.SEATING_ARBOR,new Box(25,0,23,35,6,28)));
@@ -109,12 +111,73 @@ final class ReferenceLayout {
         for(int z:new int[]{9,15})window("kitchen",36,3,z,36,5,z,EAST);
         for(int x:new int[]{-7,7})window("gate",x,11,40,x,13,40,SOUTH);
         corridor(29,0,22,31,26); // a reserved seated-court approach, through the arbor's open front
+        wallWalkCircuit();
         for(Pos p:circulation)for(int h=0;h<3;h++)clearance.add(new Pos(p.x(),p.y()+h,p.z()));
         // Taller arch openings are protected beyond the minimum route headroom.
         for(Connection c:connections)for(int x=c.aperture().minX();x<=c.aperture().maxX();x++)
             for(int z=c.aperture().minZ();z<=c.aperture().maxZ();z++)for(int y=c.aperture().minY();y<=c.aperture().maxY();y++)clearance.add(new Pos(x,y,z));
-        return new ArchitectureModel("falkenwacht-v2-study",modules,rooms,connections,stairs,windows,clearance,circulation,new Pos(0,1,40),partitions,bays,courtFeatures,
-            List.of(new Dormer("residence-roof-north","residence",36,-23,25),new Dormer("residence-roof-south","residence",36,-5,25)));
+        return new ArchitectureModel("falkenwacht-v3-wallwalk",modules,rooms,connections,stairs,windows,clearance,circulation,new Pos(0,1,40),partitions,bays,courtFeatures,
+            List.of(new Dormer("residence-roof-north","residence",36,-23,25),new Dormer("residence-roof-south","residence",36,-5,25)),wallWalks);
+    }
+    private void wallWalkCircuit(){
+        Map<String,Set<Pos>> decks=new LinkedHashMap<>();
+        deck(decks,"northwall",-39,6,-39,39,-37);
+        deck(decks,"westwall",-48,6,-30,-46,29);
+        deck(decks,"eastwall",46,6,-30,48,29);
+        deck(decks,"southwall-west",-39,6,37,-14,39);
+        deck(decks,"southwall-east",14,6,37,39,39);
+        deck(decks,"gate",-11,8,37,11,39);
+        for(String id:List.of("northwest","northeast","southwest","southeast")){
+            Module m=find(id);Box a=m.bounds();
+            deck(decks,id,a.minX()+1,6,a.minZ()+1,a.maxX()-1,a.maxZ()-1);
+            boolean west=a.minX()<0,north=a.minZ()<0;
+            int side=west?a.maxX():a.minX(),end=north?a.maxZ():a.minZ();
+            deck(decks,id,side,6,north?-39:37,side,north?-37:39);
+            deck(decks,id,west?-48:46,6,end,west?-46:48,end);
+        }
+        // Three-wide straight court stair, plus two short gatehouse transitions.
+        straightStair(decks,"wall-stair","court-wall-stair",-44,23,0,6,NORTH);
+        corridor(-44,0,24,-42,27);
+        corridor(-40,0,13,-38,27); // service wing / court-stair passage across facade margins
+        deck(decks,"wall-stair",-45,6,15,-42,17);
+        straightStair(decks,"southwall-west","west-gate-rise",-13,39,6,2,EAST);
+        straightStair(decks,"southwall-east","east-gate-rise",13,37,6,2,WEST);
+        Set<String> guardColumns=new HashSet<>();
+        for(var entry:decks.entrySet()) {
+            Set<Pos> guards=new LinkedHashSet<>();
+            Set<String> ownColumns=new HashSet<>();
+            for(Pos p:entry.getValue())for(var dir:List.of(NORTH,EAST,SOUTH,WEST)) {
+                int x=p.x()+dir.dx,z=p.z()+dir.dz;
+                boolean neighbour=false;
+                for(int dy=0;dy<=2;dy++)if(circulation.contains(new Pos(x,p.y()+dy,z)))neighbour=true;
+                if(neighbour)continue;
+                String column=x+":"+z;
+                if(guardColumns.contains(column))continue;
+                ownColumns.add(column);
+                guards.add(new Pos(x,p.y()+1,z));
+                boolean outer=x==-49||x==49||z==-40||z==40;
+                if(outer&&Math.floorMod(x+z,4)<2)guards.add(new Pos(x,p.y()+2,z));
+            }
+            guardColumns.addAll(ownColumns);
+            wallWalks.add(new WallWalk(entry.getKey()+"-walk",entry.getKey(),entry.getValue(),guards));
+        }
+    }
+    private void deck(Map<String,Set<Pos>> decks,String owner,int x1,int f,int z1,int x2,int z2){
+        Set<Pos> cells=decks.computeIfAbsent(owner,k->new LinkedHashSet<>());
+        for(int x=x1;x<=x2;x++)for(int z=z1;z<=z2;z++){cells.add(new Pos(x,f,z));walk(x,f,z);}
+    }
+    private void straightStair(Map<String,Set<Pos>> decks,String owner,String id,int x,int z,int base,int rise,ReferenceBlock.Facing facing){
+        List<List<Pos>> rows=new ArrayList<>();
+        for(int n=0;n<rise;n++){
+            List<Pos> row=new ArrayList<>();
+            for(int w=0;w<3;w++){
+                int px=x+n*facing.dx+w*(facing.dx==0?1:0),pz=z+n*facing.dz-w*(facing.dz==0?facing.dx:0);
+                Pos p=new Pos(px,base+n+1,pz);row.add(p);
+                deck(decks,owner,px,p.y(),pz,px,pz);
+            }
+            rows.add(row);
+        }
+        stairs.add(new StairFlight(id,owner,facing,rows));
     }
     private void module(String id,ModuleType type,int x1,int z1,int x2,int z2,int height,List<Integer> floors,RoofType roof,int chamfer){
         modules.add(new Module(id,type,new Box(x1,0,z1,x2,height,z2),floors,roof,chamfer));
@@ -122,8 +185,8 @@ final class ReferenceLayout {
     private Module find(String id){return modules.stream().filter(m->m.id().equals(id)).findFirst().orElseThrow();}
     private void room(String id,String owner,RoomType type,int f,int x,int z){
         Module m=find(owner);Box b=m.bounds();
-        int inset=m.chamfer()/2+1;
-        rooms.add(new Room(id,owner,type,new Box(b.minX()+inset,f+1,b.minZ()+inset,b.maxX()-inset,Math.min(f+6,b.maxY()-1),b.maxZ()-inset),f,new Pos(x,f+1,z)));
+        int inset=m.type()==ModuleType.CORNER_TOWER?2:m.chamfer()/2+1;
+        rooms.add(new Room(id,owner,type,new Box(b.minX()+inset,f+1,b.minZ()+inset,b.maxX()-inset,Math.min(f+6,m.type()==ModuleType.CORNER_TOWER?5:b.maxY()-1),b.maxZ()-inset),f,new Pos(x,f+1,z)));
     }
     private void walk(int x,int floor,int z){circulation.add(new Pos(x,floor+1,z));}
     private void corridor(int x1,int floor,int z1,int x2,int z2){for(int x=x1;x<=x2;x++)for(int z=z1;z<=z2;z++)walk(x,floor,z);}

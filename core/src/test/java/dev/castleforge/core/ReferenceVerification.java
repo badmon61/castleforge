@@ -198,6 +198,53 @@ public final class ReferenceVerification {
         var report=QualityChecks.verify(model,local);
         check(report.reachableRooms()==model.rooms().size(),"final voxel navigation reaches every declared room");
         check(report.equals(plan.report()),"stored quality report independently reproduces");
+        verifyWallWalk(plan,map);
+    }
+    /** Independent authored circuit: no ground-level shortcut can stand in for a missing high link. */
+    private static void verifyWallWalk(Plan plan,Map<Pos,ReferenceBlock> blocks){
+        var model=plan.architecture();
+        check(model.wallWalks().size()==11,"five curtains, four tower platforms, gate and court-stair are modeled");
+        List<Pos> corners=List.of(new Pos(-47,7,-38),new Pos(47,7,-38),new Pos(47,7,38),
+            new Pos(14,7,38),new Pos(13,8,38),new Pos(12,9,38),new Pos(-12,9,38),
+            new Pos(-13,8,38),new Pos(-14,7,38),new Pos(-47,7,38),new Pos(-47,7,-38));
+        int length=0;
+        for(int i=1;i<corners.size();i++){
+            Pos a=corners.get(i-1),b=corners.get(i);
+            int count=Math.max(Math.abs(b.x()-a.x()),Math.abs(b.z()-a.z()));
+            int dx=Integer.signum(b.x()-a.x()),dz=Integer.signum(b.z()-a.z()),dy=Integer.signum(b.y()-a.y());
+            for(int n=0;n<=count;n++){
+                Pos p=new Pos(a.x()+n*dx,a.y()+n*dy,a.z()+n*dz);
+                if(!model.circulation().contains(p))throw new AssertionError("missing high circuit cell "+p);
+                var floor=blocks.get(new Pos(p.x(),p.y()-1,p.z()));
+                if(floor==null||!(floor.fullCube()||floor.stair()))throw new AssertionError("circuit floor gap "+p);
+                for(int h=0;h<3;h++){
+                    var air=blocks.get(new Pos(p.x(),p.y()+h,p.z()));
+                    if(air==null||air.kind()!=Kind.AIR)throw new AssertionError("circuit headroom "+p);
+                }
+            }
+            length+=count;
+        }
+        check(length==340,"closed elevated centreline is 340 blocks, through four towers and the upper gate");
+        for(var flight:model.stairs())if(flight.id().equals("court-wall-stair")||flight.id().endsWith("gate-rise")){
+            for(int lane=0;lane<3;lane++){
+                Pos first=flight.treads().getFirst().get(lane),last=flight.treads().getLast().get(lane);
+                Pos low=new Pos(first.x()-flight.facing().dx,first.y()-1,first.z()-flight.facing().dz);
+                Pos high=new Pos(last.x()+flight.facing().dx,last.y(),last.z()+flight.facing().dz);
+                if(!blocks.containsKey(low)||!blocks.get(low).fullCube()||!blocks.containsKey(high)||!blocks.get(high).fullCube())
+                    throw new AssertionError("missing full-width landing "+flight.id()+" lane "+lane);
+                int surface=2*(low.y()+1);
+                for(var row:flight.treads()){
+                    Pos p=row.get(lane);ReferenceBlock stair=blocks.get(p);
+                    if(stair==null||!stair.stair()||stair.facing()!=flight.facing())throw new AssertionError("invalid stair primitive "+p);
+                    for(int half:new int[]{1,2}){
+                        int next=2*p.y()+half;
+                        if(next-surface!=1)throw new AssertionError("full-block jump in stair "+flight.id()+" at "+p);
+                        surface=next;
+                    }
+                }
+                check(surface==2*(high.y()+1),"three-wide half-block stair surfaces meet both landings: "+flight.id());
+            }
+        }
     }
     private static void verifyMutations(Plan reference) {
         ArchitectureModel model=reference.architecture();
@@ -259,11 +306,22 @@ public final class ReferenceVerification {
         connections.set(0,new Connection(connection.id(),connection.from(),connection.from(),connection.aperture()));
         ArchitectureModel selfConnection=copyModel(model,model.modules(),model.rooms(),connections,model.stairs(),model.windows());
         rejects(()->QualityChecks.validateModel(selfConnection),"self-connected module port rejected");
+        WallWalk wall=model.wallWalks().getFirst();
+        Pos deck=wall.deck().iterator().next(),guard=wall.guards().iterator().next();
+        rejects(()->QualityChecks.verify(model,replace(local,deck,Kind.AIR,Facing.NONE)),"missing wall-walk deck rejected");
+        rejects(()->QualityChecks.verify(model,replace(local,guard,Kind.AIR,Facing.NONE)),"removed parapet rejected");
+        for(String id:List.of("court-wall-stair","west-gate-rise","east-gate-rise")){
+            StairFlight s=model.stairs().stream().filter(f->f.id().equals(id)).findFirst().orElseThrow();
+            Pos p=s.treads().getFirst().getFirst();
+            rejects(()->QualityChecks.verify(model,replace(local,p,Kind.STONE_STAIRS,s.facing().rotate(2))),"wrong new stair facing rejected: "+id);
+        }
+        rejects(()->QualityChecks.verify(model,replace(local,new Pos(-40,7,-38),Kind.STONE,Facing.NONE)),"blocked tower crossing rejected");
+        rejects(()->QualityChecks.verify(model,replace(local,new Pos(0,9,38),Kind.STONE,Facing.NONE)),"blocked elevated gate passage rejected");
     }
     private static ArchitectureModel copyModel(ArchitectureModel model,List<ArchitectureModel.Module> modules,List<Room> rooms,
             List<Connection> connections,List<StairFlight> stairs,List<Window> windows) {
         return new ArchitectureModel(model.variant(),modules,rooms,connections,stairs,windows,
-            model.clearance(),model.circulation(),model.entrance(),model.partitions(),model.facadeBays(),model.courtFeatures(),model.dormers());
+            model.clearance(),model.circulation(),model.entrance(),model.partitions(),model.facadeBays(),model.courtFeatures(),model.dormers(),model.wallWalks());
     }
     private static List<ReferenceBlock> replace(List<ReferenceBlock> input,Pos pos,Kind kind,Facing facing) {
         var output=new ArrayList<ReferenceBlock>(input.size()+1);

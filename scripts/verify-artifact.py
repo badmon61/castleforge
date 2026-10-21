@@ -11,7 +11,7 @@ with zipfile.ZipFile(artifact) as archive:
     names = set(archive.namelist())
     metadata = json.loads(archive.read('fabric.mod.json'))
     assert metadata['id'] == 'castleforge', metadata
-    assert metadata['version'] == '0.3.0-alpha.2', metadata
+    assert metadata['version'] == '0.3.0-alpha.3', metadata
     assert metadata['environment'] == '*', metadata
     assert '26.1.2' in str(metadata['depends']['minecraft']), metadata
     for name in ('dev/castleforge/core/CastlePlanner.class',

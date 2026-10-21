@@ -128,6 +128,7 @@ final class InteriorDesigner {
                 case "northeast-guard" -> crate(r,46,f+1,-38,2);
                 case "southwest-guard" -> crate(r,-47,f+1,36,2);
                 case "southeast-guard" -> crate(r,46,f+1,36,2);
+                case "gate-watch" -> bench(r,8,f+1,33,9,Facing.SOUTH);
                 default -> {}
             }
             // A short ceiling tie and two lamps. Skip the entire group if it crosses the stair clearance.
