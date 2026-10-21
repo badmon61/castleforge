@@ -26,6 +26,11 @@ jobs:
         run: |
           set -o pipefail
           gradle --no-daemon build --stacktrace 2>&1 | tee build-verification.log
+      - name: Verify distribution and export actual reference blocks
+        shell: bash
+        run: |
+          python3 scripts/verify-artifact.py fabric/build/libs/castleforge-fabric-0.3.0-alpha.3.jar
+          java -Xmx512m -cp core/build/classes/java/main:core/build/classes/java/test dev.castleforge.core.ReferenceExport build/reference
       - uses: actions/upload-artifact@v4
         with:
           name: castleforge-fabric-26.1.2
@@ -39,4 +44,7 @@ jobs:
             build-verification.log
             core/build/reports/
             fabric/build/reports/
+            build/reference/
+            build/JAR_SHA256.txt
           if-no-files-found: warn
+
